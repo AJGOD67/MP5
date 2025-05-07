@@ -1,0 +1,57 @@
+--// SETTINGS
+local AimPart = "Head"
+local AimRadius = 120
+local Prediction = 0.16
+local AimbotEnabled = true
+
+--// SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+--// ฟังก์ชันหาศัตรูใกล้ที่สุด
+function GetClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = AimRadius
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Team ~= LocalPlayer.Team and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local pos = workspace.CurrentCamera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
+            local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+
+            if dist < shortestDistance then
+                closestPlayer = player
+                shortestDistance = dist
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+--// MAIN LOOP: Aimbot + Accuracy
+RunService.RenderStepped:Connect(function()
+    if AimbotEnabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local target = GetClosestPlayer()
+        if target and target.Character and target.Character:FindFirstChild(AimPart) then
+            local predictedPos = target.Character[AimPart].Position + target.Character.HumanoidRootPart.Velocity * Prediction
+            workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, predictedPos)
+        end
+    end
+
+    --// NO RECOIL + MAX ACCURACY
+    pcall(function()
+        local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        if tool and tool:FindFirstChild("Recoil") then
+            tool.Recoil.Value = 0
+        end
+        if tool and tool:FindFirstChild("Spread") then
+            tool.Spread.Value = 0
+        end
+        if tool and tool:FindFirstChild("Accuracy") then
+            tool.Accuracy.Value = 100
+        end
+    end)
+end)
